@@ -32,16 +32,40 @@ class _MyHomePageState extends State<MyHomePage> {
   ///2 - filled primary cell
   ///1 - filled secondary cell
   ///0 - empty cell
-  final List<int> _cells = List.generate(15, (_) => 0);
+  ///-1 - secondary tapped
+  List<int> _cells = List.generate(15, (_) => 0);
 
-  void _applyActionIfFull(int buttonIndex) {}
+  void _resetGrid() {
+    setState(() {
+      _cells = List.filled(15, 0);
+      _cells[7] = 2;
+    });
+  }
+
+  bool get _isGridFilled {
+    return _cells.every((e) => e != 0);
+  }
+
+  bool get _isDuplicationProceed {
+    final randInt = Random().nextInt(4);
+    return randInt == 0;
+  }
 
   void _applyAction(int buttonIndex) {
-    _moveButton(buttonIndex);
+    if (_isGridFilled) {
+      if (_cells[buttonIndex] == 1) {
+        setState(() {
+          _cells[buttonIndex] = -1;
+        });
+      } else if (_cells[buttonIndex] == 2) {
+        _resetGrid();
+      }
+    } else if (_cells[buttonIndex] != 0) {
+      _moveButton(buttonIndex);
 
-    final randInt = Random().nextInt(4);
-    if (randInt == 0) {
-      _duplicateButton();
+      if (_isDuplicationProceed) {
+        _duplicateButton();
+      }
     }
   }
 
@@ -72,6 +96,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   void initState() {
+    super.initState();
     _cells[7] = 2;
   }
 
@@ -88,11 +113,10 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         children: _cells
             .mapIndexed((i, cell) => Cell(
-                  isPrimary: cell,
+                  cellState: cell,
                   onClick: () {
                     _applyAction(i);
                   },
-                  isFieldFilles: _cells.every((e) => e != 0),
                 ))
             .toList(),
       ),
@@ -101,22 +125,20 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class Cell extends StatelessWidget {
-  const Cell({
-    Key? key,
-    required this.onClick,
-    required this.isPrimary,
-    required this.isFieldFilled,
-  }) : super(key: key);
+  const Cell({Key? key, required this.onClick, required this.cellState})
+      : super(key: key);
 
   final void Function() onClick;
-  final int isPrimary;
-  final bool isFieldFilled;
+  final int cellState;
 
   Color get color {
-    if (isPrimary == 0) {
-      return Colors.white;
-    } else {
-      return Colors.red;
+    switch (cellState) {
+      case -1:
+        return Colors.grey;
+      case 0:
+        return Colors.white;
+      default:
+        return Colors.red;
     }
   }
 
@@ -125,11 +147,8 @@ class Cell extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: InkWell(
-        onTap: () => {
-          if (isFieldFilled) {onClick()} else {
-            if (isPrimary == 1) {
-            }
-          }
+        onTap: () {
+          onClick();
         },
         child: Container(
           color: color,
