@@ -20,6 +20,13 @@ class MyApp extends StatelessWidget {
   }
 }
 
+enum CellState {
+  empty,
+  primary,
+  secondary,
+  disabled
+}
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
 
@@ -33,17 +40,17 @@ class _MyHomePageState extends State<MyHomePage> {
   ///1 - filled secondary cell
   ///0 - empty cell
   ///-1 - secondary tapped
-  List<int> _cells = List.generate(15, (_) => 0);
+  List<CellState> _cells = List.generate(15, (_) => CellState.empty);
 
   void _resetGrid() {
     setState(() {
-      _cells = List.filled(15, 0);
-      _cells[7] = 2;
+      _cells = List.filled(15, CellState.empty);
+      _cells[7] = CellState.primary;
     });
   }
 
   bool get _isGridFilled {
-    return _cells.every((e) => e != 0);
+    return _cells.every((e) => e != CellState.empty);
   }
 
   bool get _isDuplicationProceed {
@@ -53,14 +60,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _applyAction(int buttonIndex) {
     if (_isGridFilled) {
-      if (_cells[buttonIndex] == 1) {
+      if (_cells[buttonIndex] == CellState.secondary) {
         setState(() {
-          _cells[buttonIndex] = -1;
+          _cells[buttonIndex] = CellState.disabled;
         });
-      } else if (_cells[buttonIndex] == 2) {
+      } else if (_cells[buttonIndex] == CellState.primary) {
         _resetGrid();
       }
-    } else if (_cells[buttonIndex] != 0) {
+    } else if (_cells[buttonIndex] != CellState.empty) {
       _moveButton(buttonIndex);
 
       if (_isDuplicationProceed) {
@@ -72,32 +79,32 @@ class _MyHomePageState extends State<MyHomePage> {
   void _moveButton(int buttonIndex) {
     final emptyCellIndexes = _cells
         .mapIndexed((i, cell) => MapEntry(i, cell))
-        .where((entry) => entry.value == 0)
+        .where((entry) => entry.value == CellState.empty)
         .map((entry) => entry.key)
         .toList();
     final randomEmptyCell = (emptyCellIndexes..shuffle()).first;
     setState(() {
       _cells[randomEmptyCell] = _cells[buttonIndex];
-      _cells[buttonIndex] = 0;
+      _cells[buttonIndex] = CellState.empty;
     });
   }
 
   void _duplicateButton() {
     final emptyCellIndexes = _cells
         .mapIndexed((i, cell) => MapEntry(i, cell))
-        .where((entry) => entry.value == 0)
+        .where((entry) => entry.value == CellState.empty)
         .map((entry) => entry.key)
         .toList();
     final randomEmptyCell = (emptyCellIndexes..shuffle()).first;
     setState(() {
-      _cells[randomEmptyCell] = 1;
+      _cells[randomEmptyCell] = CellState.secondary;
     });
   }
 
   @override
   void initState() {
     super.initState();
-    _cells[7] = 2;
+    _cells[7] = CellState.primary;
   }
 
   @override
@@ -129,13 +136,13 @@ class Cell extends StatelessWidget {
       : super(key: key);
 
   final void Function() onClick;
-  final int cellState;
+  final CellState cellState;
 
   Color get color {
     switch (cellState) {
-      case -1:
+      case CellState.disabled:
         return Colors.grey;
-      case 0:
+      case CellState.empty:
         return Colors.white;
       default:
         return Colors.red;
