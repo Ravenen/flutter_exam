@@ -20,6 +20,13 @@ class MyApp extends StatelessWidget {
   }
 }
 
+enum CellState {
+  empty,
+  primary,
+  secondary,
+  disabled
+}
+
 class MyHomePage extends StatefulWidget {
   const MyHomePage({Key? key}) : super(key: key);
 
@@ -32,47 +39,72 @@ class _MyHomePageState extends State<MyHomePage> {
   ///2 - filled primary cell
   ///1 - filled secondary cell
   ///0 - empty cell
-  final List<int> _cells = List.generate(15, (_) => 0);
+  ///-1 - secondary tapped
+  List<CellState> _cells = List.generate(15, (_) => CellState.empty);
 
-  void _applyActionIfFull(int buttonIndex) {}
+  void _resetGrid() {
+    setState(() {
+      _cells = List.filled(15, CellState.empty);
+      _cells[7] = CellState.primary;
+    });
+  }
+
+  bool get _isGridFilled {
+    return _cells.every((e) => e != CellState.empty);
+  }
+
+  bool get _isDuplicationProceed {
+    final randInt = Random().nextInt(4);
+    return randInt == 0;
+  }
 
   void _applyAction(int buttonIndex) {
-    _moveButton(buttonIndex);
+    if (_isGridFilled) {
+      if (_cells[buttonIndex] == CellState.secondary) {
+        setState(() {
+          _cells[buttonIndex] = CellState.disabled;
+        });
+      } else if (_cells[buttonIndex] == CellState.primary) {
+        _resetGrid();
+      }
+    } else if (_cells[buttonIndex] != CellState.empty) {
+      _moveButton(buttonIndex);
 
-    final randInt = Random().nextInt(4);
-    if (randInt == 0) {
-      _duplicateButton();
+      if (_isDuplicationProceed) {
+        _duplicateButton();
+      }
     }
   }
 
   void _moveButton(int buttonIndex) {
     final emptyCellIndexes = _cells
         .mapIndexed((i, cell) => MapEntry(i, cell))
-        .where((entry) => entry.value == 0)
+        .where((entry) => entry.value == CellState.empty)
         .map((entry) => entry.key)
         .toList();
     final randomEmptyCell = (emptyCellIndexes..shuffle()).first;
     setState(() {
       _cells[randomEmptyCell] = _cells[buttonIndex];
-      _cells[buttonIndex] = 0;
+      _cells[buttonIndex] = CellState.empty;
     });
   }
 
   void _duplicateButton() {
     final emptyCellIndexes = _cells
         .mapIndexed((i, cell) => MapEntry(i, cell))
-        .where((entry) => entry.value == 0)
+        .where((entry) => entry.value == CellState.empty)
         .map((entry) => entry.key)
         .toList();
     final randomEmptyCell = (emptyCellIndexes..shuffle()).first;
     setState(() {
-      _cells[randomEmptyCell] = 1;
+      _cells[randomEmptyCell] = CellState.secondary;
     });
   }
 
   @override
   void initState() {
-    _cells[7] = 2;
+    super.initState();
+    _cells[7] = CellState.primary;
   }
 
   @override
@@ -88,11 +120,10 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         children: _cells
             .mapIndexed((i, cell) => Cell(
-                  isPrimary: cell,
+                  cellState: cell,
                   onClick: () {
                     _applyAction(i);
                   },
-                  isFieldFilles: _cells.every((e) => e != 0),
                 ))
             .toList(),
       ),
@@ -101,22 +132,20 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class Cell extends StatelessWidget {
-  const Cell({
-    Key? key,
-    required this.onClick,
-    required this.isPrimary,
-    required this.isFieldFilled,
-  }) : super(key: key);
+  const Cell({Key? key, required this.onClick, required this.cellState})
+      : super(key: key);
 
   final void Function() onClick;
-  final int isPrimary;
-  final bool isFieldFilled;
+  final CellState cellState;
 
   Color get color {
-    if (isPrimary == 0) {
-      return Colors.white;
-    } else {
-      return Colors.red;
+    switch (cellState) {
+      case CellState.disabled:
+        return Colors.grey;
+      case CellState.empty:
+        return Colors.white;
+      default:
+        return Colors.red;
     }
   }
 
@@ -125,11 +154,8 @@ class Cell extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: InkWell(
-        onTap: () => {
-          if (isFieldFilled) {onClick()} else {
-            if (isPrimary == 1) {
-            }
-          }
+        onTap: () {
+          onClick();
         },
         child: Container(
           color: color,
